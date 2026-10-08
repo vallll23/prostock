@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { cerrarSesion, obtenerUsuario } from '../servicios/sesion.js';
+import { contarCarrito } from '../servicios/tienda.js';
 
 const navigation = [
   { to: '/', label: 'Inicio', page: 'home' },
@@ -17,9 +19,8 @@ export function EncabezadoSitio({ activePage }) {
 
   useEffect(() => {
     const refreshHeader = () => {
-      const cart = JSON.parse(localStorage.getItem('carrito') || '[]');
-      setCartCount(cart.reduce((count, item) => count + Number(item.cantidad || 0), 0));
-      setUser(JSON.parse(localStorage.getItem('usuarioActivo') || 'null'));
+      setUser(obtenerUsuario());
+      contarCarrito().then(setCartCount).catch(() => setCartCount(0));
     };
 
     refreshHeader();
@@ -75,7 +76,7 @@ export function EncabezadoSitio({ activePage }) {
                   type="button"
                   className="btn btn-sm btn-outline-light"
                   onClick={() => {
-                    localStorage.removeItem('usuarioActivo');
+                    cerrarSesion();
                     navigate('/');
                   }}
                 >

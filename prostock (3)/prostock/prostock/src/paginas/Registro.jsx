@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import regionsData from '../../data/regiones.json';
 import { DisenoCuenta, AlertaFormulario } from './CompartidoCuenta.jsx';
-import { leerAlmacenamiento, guardarAlmacenamiento } from '../utilidades/almacenamiento.js';
+import { registrarCliente } from '../servicios/tienda.js';
 
 export function Registro() {
   const navigate = useNavigate();
@@ -13,9 +13,10 @@ export function Registro() {
 
   const communes = regions.find(item => item.region === region)?.comunas || [];
 
-  const submit = event => {
+  const submit = async event => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const name = String(form.get('name')).trim();
     const email = String(form.get('email')).trim().toLowerCase();
     const password = String(form.get('password'));
@@ -24,6 +25,11 @@ export function Registro() {
 
     if (!allowedDomains.some(domain => email.endsWith(domain))) {
       setAlert({ type: 'danger', message: 'El correo debe terminar en @duoc.cl, @profesor.duoc.cl o @gmail.com.' });
+      return;
+    }
+    const phone = String(form.get('phone')).trim();
+    if (!/^\d{9}$/.test(phone)) {
+      setAlert({ type: 'warning', message: 'El teléfono debe tener exactamente 9 dígitos.' });
       return;
     }
     if (password.length < 4 || password.length > 10) {
@@ -35,26 +41,22 @@ export function Registro() {
       return;
     }
 
-    const users = leerAlmacenamiento('usuarios_db');
-    if (users.some(user => user.email === email)) {
-      setAlert({ type: 'info', message: 'El correo ya está registrado.' });
+    try {
+      await registrarCliente({
+        nombre: name,
+        email,
+        password,
+        telefono: phone,
+        region,
+        comuna: commune,
+        direccion: String(form.get('address')).trim()
+      });
+    } catch (error) {
+      setAlert({ type: error.status === 409 ? 'info' : 'danger', message: error.status === 409 ? 'El correo ya está registrado.' : error.message });
       return;
     }
-
-    users.push({
-      id: Date.now(),
-      nombre: name,
-      email,
-      password,
-      run: String(form.get('run')).trim(),
-      region,
-      comuna: commune,
-      direccion: String(form.get('address')).trim(),
-      rol: 'CLIENTE'
-    });
-    guardarAlmacenamiento('usuarios_db', users);
     setAlert({ type: 'success', message: '¡Cuenta creada con éxito! Redirigiendo al login...' });
-    event.currentTarget.reset();
+    formElement.reset();
     setRegion('');
     setCommune('');
     window.setTimeout(() => {
@@ -79,8 +81,9 @@ export function Registro() {
               <div className="form-text">Dominios aceptados: @duoc.cl, @profesor.duoc.cl, @gmail.com</div>
             </div>
             <div className="mb-3">
-              <label className="form-label" htmlFor="register-run">RUN</label>
-              <input id="register-run" name="run" className="form-control" required placeholder="12.345.678-9" />
+              <label className="form-label" htmlFor="register-phone">Teléfono</label>
+              <input id="register-phone" name="phone" className="form-control" type="tel" inputMode="numeric" required pattern="[0-9]{9}" minLength="9" maxLength="9" placeholder="912345678" />
+              <div className="form-text">9 dígitos, sin espacios ni símbolos.</div>
             </div>
             <div className="row">
               <div className="col-md-6 mb-3">

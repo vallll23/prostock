@@ -1,69 +1,66 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { DisenoFormularioAdministracion, DisenoAdministracion, categories, usarAccesoAdministracion, usarInventarioProductos } from './CompartidoAdministracion.jsx';
-import { formatearPrecio, leerAlmacenamiento, guardarAlmacenamiento } from '../utilidades/almacenamiento.js';
+import { DisenoFormularioAdministracion, DisenoAdministracion, categories, usarAccesoAdministracion } from './CompartidoAdministracion.jsx';
+import { guardarProducto, obtenerProducto } from '../servicios/tienda.js';
 
 export function FormularioProductoAdministracion() {
   const navigate = useNavigate();
   const ready = usarAccesoAdministracion();
-  const { products, saveProducts, error } = usarInventarioProductos();
   const productId = new URLSearchParams(window.location.search).get('id');
-  const existing = products.find(item => item.id === Number(productId));
   const [form, setForm] = useState(null);
   const [alert, setAlert] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!form && (products.length || !productId)) {
-      setForm(existing ? {
-        codigo: existing.codigo || '',
-        nombre: existing.nombre || '',
-        categoria: existing.categoria || '',
+    if (!ready) return undefined;
+    if (!productId) {
+      setForm({ nombre: '', descripcion: '', categoria: '', precio: '', stock: '', imagen: '' });
+      return undefined;
+    }
+    let activo = true;
+    obtenerProducto(productId)
+      .then(existing => activo && setForm({
+        nombre: existing.nombre,
+        descripcion: existing.descripcion,
+        categoria: existing.categoria,
         precio: String(existing.precio ?? ''),
         stock: String(existing.stock ?? ''),
-        imagenes: (existing.imagenes?.length ? existing.imagenes : existing.imagen ? [existing.imagen] : []).join('\n')
-      } : { codigo: '', nombre: '', categoria: '', precio: '', stock: '', imagenes: '' });
-    }
-  }, [existing, form, productId, products.length]);
+        imagen: existing.imagen
+      }))
+      .catch(loadError => activo && setError(loadError.message));
+    return () => {
+      activo = false;
+    };
+  }, [productId, ready]);
 
   if (!ready) return null;
-  if (!form) return <DisenoFormularioAdministracion><p role="status">Cargando producto...</p>{error && <p className="text-danger">{error}</p>}</DisenoFormularioAdministracion>;
+  if (!form) return <DisenoFormularioAdministracion><p role="status">{error ? '' : 'Cargando producto...'}</p>{error && <p className="text-danger">{error}</p>}</DisenoFormularioAdministracion>;
 
   const updateField = event => setForm(current => ({ ...current, [event.target.name]: event.target.value }));
-  const submit = event => {
+  const submit = async event => {
     event.preventDefault();
-    const code = form.codigo.trim().toUpperCase();
     const name = form.nombre.trim();
     const price = Number(form.precio);
     const stock = Number(form.stock);
-    const images = form.imagenes.split('\n').map(image => image.trim()).filter(Boolean);
+    const image = form.imagen.trim();
 
-    if (!code || !name || price <= 0 || stock < 0 || !Number.isFinite(price) || !Number.isFinite(stock)) {
-      setAlert('Ingresa código y nombre, un precio mayor a cero y un stock válido.');
+    if (!name || !Number.isInteger(price) || price <= 0 || !Number.isInteger(stock) || stock < 0) {
+      setAlert('Ingresa un nombre, un precio entero mayor a cero y un stock válido.');
       return;
     }
-    if (products.some(product => product.codigo.toUpperCase() === code && product.id !== Number(productId))) {
-      setAlert('Ya existe un producto con ese código.');
+    if (!image) {
+      setAlert('Debes ingresar una imagen.');
       return;
     }
-    if (!images.length) {
-      setAlert('Debes ingresar al menos una imagen.');
-      return;
+    setSaving(true);
+    try {
+      await guardarProducto({ nombre: name, descripcion: form.descripcion.trim(), categoria: form.categoria, precio: price, stock, imagen: image }, productId);
+      navigate('/admin/productos');
+    } catch (saveError) {
+      setAlert(saveError.message);
+      setSaving(false);
     }
-    const savedProduct = {
-      id: productId ? Number(productId) : Date.now(),
-      codigo: code,
-      nombre: name,
-      categoria: form.categoria,
-      precio: price,
-      stock,
-      imagenes: images,
-      imagen: images[0]
-    };
-    const nextProducts = productId
-      ? products.map(product => product.id === Number(productId) ? savedProduct : product)
-      : [...products, savedProduct];
-    saveProducts(nextProducts);
-    navigate('/admin/productos');
   };
 
   return (
@@ -73,15 +70,15 @@ export function FormularioProductoAdministracion() {
           <h1 className="h4 mb-4">Administrar Producto</h1>
           {(error || alert) && <div className="alert alert-danger" role="alert">{alert || error}</div>}
           <form onSubmit={submit}>
-            <div className="mb-3"><label className="form-label" htmlFor="product-code">Código del Producto</label><input id="product-code" name="codigo" className="form-control" required placeholder="Ej: PRI-101" value={form.codigo} onChange={updateField} /></div>
             <div className="mb-3"><label className="form-label" htmlFor="product-name">Nombre del Producto</label><input id="product-name" name="nombre" className="form-control" required placeholder="Ej: Resma Papel A4" value={form.nombre} onChange={updateField} /></div>
             <div className="mb-3"><label className="form-label" htmlFor="product-category">Categoría</label><select id="product-category" name="categoria" className="form-select" required value={form.categoria} onChange={updateField}><option value="">Seleccione...</option>{categories.map(category => <option key={category}>{category}</option>)}</select></div>
             <div className="row">
               <div className="col-md-6 mb-3"><label className="form-label" htmlFor="product-price">Precio ($)</label><input id="product-price" name="precio" type="number" min="1" className="form-control" required value={form.precio} onChange={updateField} /></div>
               <div className="col-md-6 mb-3"><label className="form-label" htmlFor="product-stock">Stock</label><input id="product-stock" name="stock" type="number" min="0" className="form-control" required value={form.stock} onChange={updateField} /></div>
             </div>
-            <div className="mb-3"><label className="form-label" htmlFor="product-images">Imágenes del producto</label><textarea id="product-images" name="imagenes" className="form-control" rows="3" required placeholder={'Una URL o ruta por línea\nimg/productos/PRI-101.jpg\nhttps://ejemplo.com/segunda-foto.jpg'} value={form.imagenes} onChange={updateField} /><small className="text-muted">Agrega una ruta o URL por línea para crear el carrusel.</small></div>
-            <div className="d-flex justify-content-between pt-2"><Link to="/admin/productos" className="btn btn-outline-secondary">Cancelar</Link><button type="submit" className="btn btn-success">Guardar Producto</button></div>
+            <div className="mb-3"><label className="form-label" htmlFor="product-description">Descripción</label><textarea id="product-description" name="descripcion" className="form-control" rows="3" value={form.descripcion} onChange={updateField} /></div>
+            <div className="mb-3"><label className="form-label" htmlFor="product-image">Imagen del producto</label><input id="product-image" name="imagen" className="form-control" required placeholder="https://ejemplo.com/foto.jpg" value={form.imagen} onChange={updateField} /></div>
+            <div className="d-flex justify-content-between pt-2"><Link to="/admin/productos" className="btn btn-outline-secondary">Cancelar</Link><button type="submit" className="btn btn-success" disabled={saving}>{saving ? 'Guardando...' : 'Guardar Producto'}</button></div>
           </form>
         </div>
       </div>

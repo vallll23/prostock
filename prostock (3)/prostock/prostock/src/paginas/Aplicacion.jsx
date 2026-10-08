@@ -1,6 +1,4 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { asegurarAdministradorInicial } from '../utilidades/almacenamiento.js';
 import { Inicio } from './Inicio.jsx';
 import { Productos } from './Productos.jsx';
 import { AcercaDeNosotros } from './AcercaDeNosotros.jsx';
@@ -20,7 +18,6 @@ import { FormularioUsuarioAdministracion } from './FormularioUsuarioAdministraci
 import { MensajesAdministracion } from './MensajesAdministracion.jsx';
 
 function RutasAplicacion() {
-  useEffect(() => asegurarAdministradorInicial(), []);
   return (
     <Routes>
       <Route path="/" element={<Inicio />} />

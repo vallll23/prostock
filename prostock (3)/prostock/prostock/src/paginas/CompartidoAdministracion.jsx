@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import productCatalog from '../../data/productos.json';
-import { asegurarAdministradorInicial, leerAlmacenamiento, guardarAlmacenamiento } from '../utilidades/almacenamiento.js';
+import { obtenerUsuario } from '../servicios/sesion.js';
+import { eliminarProducto, listarProductos } from '../servicios/tienda.js';
 
 export const menu = [
   { to: '/admin', label: 'Dashboard', page: 'dashboard' },
@@ -16,8 +16,7 @@ export function usarAccesoAdministracion() {
   const [ready, setReady] = useState(false);
   const navigate = useNavigate();
   useEffect(() => {
-    asegurarAdministradorInicial();
-    const user = leerAlmacenamiento('usuarioActivo', null);
+    const user = obtenerUsuario();
     if (!user || user.rol !== 'ADMIN') {
       window.alert('Acceso restringido solo para Administradores.');
       navigate('/login', { replace: true });
@@ -29,25 +28,35 @@ export function usarAccesoAdministracion() {
 }
 
 export function usarInventarioProductos() {
-  const [products, setProducts] = useState(() => leerAlmacenamiento('productos_db'));
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (localStorage.getItem('productos_db')) return;
+  const recargar = useCallback(async () => {
     try {
-      guardarAlmacenamiento('productos_db', productCatalog);
-      setProducts(productCatalog);
+      setProducts(await listarProductos());
+      setError('');
     } catch (loadError) {
-      console.error(loadError);
-      setError('No se pudieron guardar los productos iniciales en el almacenamiento local.');
+      setError(loadError.message);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const saveProducts = nextProducts => {
-    setProducts(nextProducts);
-    guardarAlmacenamiento('productos_db', nextProducts);
+  useEffect(() => {
+    recargar();
+  }, [recargar]);
+
+  const removeProduct = async id => {
+    try {
+      await eliminarProducto(id);
+      setProducts(current => current.filter(product => product.id !== id));
+    } catch (removeError) {
+      window.alert(removeError.message);
+    }
   };
-  return { products, saveProducts, error };
+
+  return { products, loading, error, recargar, removeProduct };
 }
 
 export function DisenoAdministracion({ activePage, children }) {

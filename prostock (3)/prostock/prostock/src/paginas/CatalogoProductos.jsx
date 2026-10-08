@@ -1,37 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import productCatalog from '../../data/productos.json';
 import { TarjetaProducto } from '../componentes/TarjetaProducto.jsx';
+import { listarProductos } from '../servicios/tienda.js';
 
 export function usarProductos() {
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const savedProducts = localStorage.getItem('productos_db');
-    if (savedProducts) {
-      try {
-        const parsedProducts = JSON.parse(savedProducts);
-        if (!Array.isArray(parsedProducts)) throw new Error('El inventario guardado no tiene un formato válido.');
-        setProducts(parsedProducts);
-      } catch (loadError) {
-        console.error(loadError);
-        setError(loadError.message);
-      }
-      return;
-    }
-
-    try {
-      localStorage.setItem('productos_db', JSON.stringify(productCatalog));
-      setProducts(productCatalog);
-    } catch (loadError) {
-      console.error(loadError);
-      setError('No se pudieron guardar los productos iniciales en el almacenamiento local.');
-      setProducts(productCatalog);
-    }
+    let activo = true;
+    listarProductos()
+      .then(items => activo && setProducts(items))
+      .catch(loadError => activo && setError(loadError.message))
+      .finally(() => activo && setLoading(false));
+    return () => {
+      activo = false;
+    };
   }, []);
 
-  return { products, error };
+  return { products, loading, error };
 }
 
 export function ProductosDestacados({ products }) {
@@ -73,7 +61,7 @@ export function ProductosDestacados({ products }) {
 }
 
 export function CatalogoProductos({ featuredOnly = false, showHomeSections = false }) {
-  const { products, error } = usarProductos();
+  const { products, loading, error } = usarProductos();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [activeTab, setActiveTab] = useState('');
@@ -165,7 +153,7 @@ export function CatalogoProductos({ featuredOnly = false, showHomeSections = fal
 
       {error ? (
         <div className="alert alert-danger" role="alert">{error}</div>
-      ) : products.length === 0 ? (
+      ) : loading ? (
         <p className="text-muted" role="status">Cargando productos...</p>
       ) : visibleProducts.length ? (
         <div className="row g-4">

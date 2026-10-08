@@ -1,6 +1,47 @@
+import { useEffect, useState } from 'react';
 import { DisenoPublico, blogImage, blogTitle } from './CompartidoTienda.jsx';
+import { obtenerBlog } from '../servicios/tienda.js';
 
 export function DetalleBlog() {
+  const postId = new URLSearchParams(window.location.search).get('id');
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(Boolean(postId));
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!postId) return undefined;
+    let activo = true;
+    obtenerBlog(postId)
+      .then(item => activo && setPost(item))
+      .catch(loadError => activo && setError(loadError.status === 404 ? 'Publicación no encontrada.' : loadError.message))
+      .finally(() => activo && setLoading(false));
+    return () => {
+      activo = false;
+    };
+  }, [postId]);
+
+  if (postId) {
+    return (
+      <DisenoPublico activePage="blog">
+        <article className="row justify-content-center">
+          <div className="col-lg-8">
+            <Link to="/blogs" className="text-decoration-none"><i className="bi bi-arrow-left" /> Volver al blog</Link>
+            {loading && <p className="mt-4 text-muted" role="status">Cargando publicación...</p>}
+            {error && <div className="alert alert-danger mt-4" role="alert">{error}</div>}
+            {post && (
+              <>
+                <h1 className="fw-bold my-3">{post.titulo}</h1>
+                {post.imagen && <img src={post.imagen} className="img-fluid rounded shadow-sm my-4" alt={post.titulo} />}
+                {post.descripcion && <p className="lead">{post.descripcion}</p>}
+                <div style={{ whiteSpace: 'pre-line' }}>{post.contenido}</div>
+              </>
+            )}
+          </div>
+        </article>
+      </DisenoPublico>
+    );
+  }
+
   const tips = [
     ['Clasifica los insumos', 'Ordena los productos según su frecuencia de uso y define responsables para los artículos críticos.'],
     ['Registra entradas y salidas', 'Actualiza el inventario cada vez que recibas o entregues materiales. El registro oportuno evita diferencias con el stock físico.'],

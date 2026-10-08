@@ -1,21 +1,43 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieSitio } from '../componentes/PieSitio.jsx';
 import { EncabezadoSitio } from '../componentes/EncabezadoSitio.jsx';
-import { formatearPrecio, leerAlmacenamiento } from '../utilidades/almacenamiento.js';
+import { formatearPrecio } from '../utilidades/almacenamiento.js';
+import { cerrarSesion, guardarUsuario, obtenerUsuario } from '../servicios/sesion.js';
+import { listarBoletas, obtenerCliente } from '../servicios/tienda.js';
 
 export function Perfil() {
   const navigate = useNavigate();
-  const user = leerAlmacenamiento('usuarioActivo', null);
+  const [user, setUser] = useState(() => obtenerUsuario());
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const sessionId = user?.id;
+
   useEffect(() => {
-    if (!user) navigate('/login', { replace: true });
-  }, [navigate, user]);
+    if (sessionId === undefined) {
+      navigate('/login', { replace: true });
+      return undefined;
+    }
+    let activo = true;
+    Promise.all([obtenerCliente(sessionId), listarBoletas(sessionId)])
+      .then(([client, boletas]) => {
+        if (!activo) return;
+        guardarUsuario(client);
+        setUser(obtenerUsuario());
+        setOrders(boletas);
+      })
+      .catch(loadError => activo && setError(loadError.message))
+      .finally(() => activo && setLoading(false));
+    return () => {
+      activo = false;
+    };
+  }, [navigate, sessionId]);
 
   if (!user) return null;
   const initials = (user.nombre || 'Usuario').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'US';
-  const orders = leerAlmacenamiento('pedidos_db').filter(order => order.usuarioId === user.id);
   const profileFields = [
-    ['RUN', user.run || 'No registrado'],
+    ['Teléfono', user.telefono || 'No registrado'],
     ['Correo Electrónico', user.email || 'No registrado'],
     ['Región', user.region || 'No registrada'],
     ['Comuna', user.comuna || 'No registrada'],
@@ -23,7 +45,7 @@ export function Perfil() {
   ];
 
   const signOut = () => {
-    localStorage.removeItem('usuarioActivo');
+    cerrarSesion();
     navigate('/');
   };
 
@@ -41,6 +63,7 @@ export function Perfil() {
             </div>
           </aside>
           <div className="col-md-8">
+            {error && <div className="alert alert-danger" role="alert">{error}</div>}
             <section className="card shadow-sm mb-4">
               <h2 className="card-header bg-white h6 fw-bold">Información Personal</h2>
               <div className="card-body"><div className="row g-3">
@@ -52,7 +75,7 @@ export function Perfil() {
               <div className="table-responsive">
                 <table className="table mb-0 align-middle">
                   <thead className="table-light"><tr><th>N° Pedido</th><th>Fecha</th><th>Total</th><th>Estado</th></tr></thead>
-                  <tbody>{orders.length ? orders.map(order => <tr key={order.id}><td>#{order.id}</td><td>{order.fecha}</td><td>{formatearPrecio(order.total)}</td><td><span className="badge bg-success">{order.estado}</span></td></tr>) : <tr><td colSpan="4" className="text-center text-muted py-4">Aún no tienes compras registradas.</td></tr>}</tbody>
+                  <tbody>{orders.length ? orders.map(order => <tr key={order.id}><td>#{order.id}</td><td>{order.fecha}</td><td>{formatearPrecio(order.total)}</td><td><span className="badge bg-success">{order.estado}</span></td></tr>) : <tr><td colSpan="4" className="text-center text-muted py-4">{loading ? 'Cargando pedidos...' : 'Aún no tienes compras registradas.'}</td></tr>}</tbody>
                 </table>
               </div>
             </section>

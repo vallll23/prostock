@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DisenoCuenta, AlertaFormulario } from './CompartidoCuenta.jsx';
-import { asegurarAdministradorInicial, leerAlmacenamiento, guardarAlmacenamiento } from '../utilidades/almacenamiento.js';
+import { iniciarSesion } from '../servicios/tienda.js';
 
 export function IniciarSesion() {
   const navigate = useNavigate();
@@ -9,22 +9,18 @@ export function IniciarSesion() {
   const [password, setPassword] = useState('');
   const [alert, setAlert] = useState(null);
 
-  useEffect(() => asegurarAdministradorInicial(), []);
+  const [busy, setBusy] = useState(false);
 
-  const submit = event => {
+  const submit = async event => {
     event.preventDefault();
-    const normalizedEmail = email.trim().toLowerCase();
-    const user = leerAlmacenamiento('usuarios_db').find(
-      item => item.email === normalizedEmail && item.password === password
-    );
-
-    if (!user) {
-      setAlert({ type: 'danger', message: 'Credenciales inválidas. Inténtalo nuevamente.' });
-      return;
+    setBusy(true);
+    try {
+      const user = await iniciarSesion(email.trim().toLowerCase(), password);
+      navigate(user.rol === 'ADMIN' ? '/admin' : '/');
+    } catch (error) {
+      setAlert({ type: 'danger', message: error.status === 401 ? 'Credenciales inválidas. Inténtalo nuevamente.' : error.message });
+      setBusy(false);
     }
-
-    guardarAlmacenamiento('usuarioActivo', user);
-    navigate(user.rol === 'ADMIN' ? '/admin' : '/');
   };
 
   return (
@@ -42,7 +38,7 @@ export function IniciarSesion() {
               <label className="form-label" htmlFor="login-password">Contraseña</label>
               <input id="login-password" className="form-control" type="password" required value={password} onChange={event => setPassword(event.target.value)} />
             </div>
-            <button type="submit" className="btn btn-primary w-100 fw-bold py-2">Ingresar</button>
+            <button type="submit" className="btn btn-primary w-100 fw-bold py-2" disabled={busy}>{busy ? 'Ingresando...' : 'Ingresar'}</button>
           </form>
           <p className="text-center mt-3 mb-0 small">¿No tienes cuenta? <Link to="/registro">Regístrate aquí</Link></p>
         </div>

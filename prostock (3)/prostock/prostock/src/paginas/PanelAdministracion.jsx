@@ -1,14 +1,32 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DisenoFormularioAdministracion, DisenoAdministracion, categories, usarAccesoAdministracion, usarInventarioProductos } from './CompartidoAdministracion.jsx';
-import { formatearPrecio, leerAlmacenamiento, guardarAlmacenamiento } from '../utilidades/almacenamiento.js';
+import { DisenoFormularioAdministracion, DisenoAdministracion, usarAccesoAdministracion, usarInventarioProductos } from './CompartidoAdministracion.jsx';
+import { formatearPrecio, leerAlmacenamiento } from '../utilidades/almacenamiento.js';
+import { listarBoletas, listarClientes } from '../servicios/tienda.js';
 
 export function PanelAdministracion() {
   const ready = usarAccesoAdministracion();
   const { products, error } = usarInventarioProductos();
-  const users = leerAlmacenamiento('usuarios_db');
-  const orders = leerAlmacenamiento('pedidos_db');
+  const [users, setUsers] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [panelError, setPanelError] = useState('');
   const messages = leerAlmacenamiento('mensajes_contacto_db');
+
+  useEffect(() => {
+    if (!ready) return undefined;
+    let activo = true;
+    listarClientes()
+      .then(async clientes => {
+        const boletas = await Promise.all(clientes.map(cliente => listarBoletas(cliente.id)));
+        if (!activo) return;
+        setUsers(clientes);
+        setOrders(boletas.flat());
+      })
+      .catch(loadError => activo && setPanelError(loadError.message));
+    return () => {
+      activo = false;
+    };
+  }, [ready]);
 
   if (!ready) return null;
   const stats = [
@@ -23,7 +41,7 @@ export function PanelAdministracion() {
   return (
     <DisenoAdministracion activePage="dashboard">
       <h1 className="h3 mb-4">Panel de Control</h1>
-      {error && <div className="alert alert-danger" role="alert">{error}</div>}
+      {(error || panelError) && <div className="alert alert-danger" role="alert">{error || panelError}</div>}
       <div className="row g-3">
         {stats.map(stat => (
           <div className="col-md-6 col-xl-4" key={stat.title}>

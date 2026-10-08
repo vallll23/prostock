@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DisenoFormularioAdministracion, DisenoAdministracion, categories, usarAccesoAdministracion, usarInventarioProductos } from './CompartidoAdministracion.jsx';
-import { formatearPrecio, leerAlmacenamiento, guardarAlmacenamiento } from '../utilidades/almacenamiento.js';
+import { formatearPrecio } from '../utilidades/almacenamiento.js';
 
 export function ProductosAdministracion() {
   const ready = usarAccesoAdministracion();
-  const { products, saveProducts, error } = usarInventarioProductos();
+  const { products, loading, error, removeProduct: deleteProduct } = usarInventarioProductos();
 
   const removeProduct = id => {
     if (!window.confirm('¿Seguro de eliminar este producto?')) return;
-    saveProducts(products.filter(product => product.id !== id));
+    deleteProduct(id);
   };
 
   if (!ready) return null;
@@ -32,7 +32,7 @@ export function ProductosAdministracion() {
                   <button type="button" className="btn btn-sm btn-danger" aria-label={`Eliminar ${product.nombre}`} onClick={() => removeProduct(product.id)}><i className="bi bi-trash" /></button>
                 </td>
               </tr>
-            ))}{!products.length && <tr><td colSpan="6" className="text-center text-muted py-4">No hay productos registrados.</td></tr>}</tbody>
+            ))}{!products.length && <tr><td colSpan="6" className="text-center text-muted py-4">{loading ? 'Cargando productos...' : 'No hay productos registrados.'}</td></tr>}</tbody>
           </table>
         </div>
       </div>

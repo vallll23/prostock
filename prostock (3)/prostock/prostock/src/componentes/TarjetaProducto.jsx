@@ -1,22 +1,13 @@
 import { Link } from 'react-router-dom';
+import { agregarAlCarrito } from '../servicios/tienda.js';
 
 export function TarjetaProducto({ product }) {
-  const addToCart = () => {
-    const cart = JSON.parse(localStorage.getItem('carrito') || '[]');
-    const existingItem = cart.find(item => item.id === product.id);
-
-    if (existingItem) {
-      if (existingItem.cantidad >= product.stock) {
-        window.alert(`Solo hay ${product.stock} unidades disponibles.`);
-        return;
-      }
-      existingItem.cantidad += 1;
-    } else {
-      cart.push({ ...product, cantidad: 1 });
+  const addToCart = async () => {
+    try {
+      await agregarAlCarrito(product, 1);
+    } catch (error) {
+      window.alert(error.message);
     }
-
-    localStorage.setItem('carrito', JSON.stringify(cart));
-    window.dispatchEvent(new Event('storage'));
   };
 
   return (
