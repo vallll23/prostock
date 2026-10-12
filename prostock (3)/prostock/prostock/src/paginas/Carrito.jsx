@@ -1,96 +1,54 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { PieSitio } from '../componentes/PieSitio.jsx';
-import { EncabezadoSitio } from '../componentes/EncabezadoSitio.jsx';
-import { ModalDespacho } from './CompartidoTienda.jsx';
-import { formatearPrecio } from '../utilidades/almacenamiento.js';
-import { obtenerUsuario } from '../servicios/sesion.js';
-import { crearBoleta, establecerCantidad, obtenerCarrito, quitarDelCarrito, vaciarCarrito } from '../servicios/tienda.js';
-
-export function Carrito() {
-  const navigate = useNavigate();
-  const [cart, setCart] = useState({ items: [], subtotal: 0, impuestos: 0, total: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const { items, subtotal, impuestos: tax, total } = cart;
-
-  const cargar = useCallback(async () => {
-    try {
-      setCart(await obtenerCarrito());
-      setError('');
-    } catch (loadError) {
-      setError(loadError.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    cargar();
-  }, [cargar]);
-
-  useEffect(() => {
-    if (!checkoutOpen) return undefined;
-    document.body.classList.add('modal-open');
-    return () => {
-      document.body.classList.remove('modal-open');
-    };
-  }, [checkoutOpen]);
-
-  const ejecutar = async accion => {
-    setBusy(true);
-    try {
-      await accion();
-      await cargar();
-    } catch (actionError) {
-      window.alert(actionError.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const changeQuantity = (item, amount) => ejecutar(() => establecerCantidad(item.id, item.cantidad + amount));
-
-  const beginCheckout = () => {
-    if (!items.length) {
-      window.alert('El carrito está vacío.');
-      return;
-    }
-    if (!obtenerUsuario()) {
-      window.alert('Debes iniciar sesión para finalizar tu compra.');
-      navigate('/login');
-      return;
-    }
-    setCheckoutOpen(true);
-  };
-
-  const confirmOrder = async event => {
-    event.preventDefault();
-    const user = obtenerUsuario();
-    if (!items.length || !user) {
-      window.alert('Debes iniciar sesión y agregar productos antes de continuar.');
-      return;
-    }
-
-    const form = new FormData(event.currentTarget);
-    const field = name => String(form.get(name) || '').trim();
-    const direccion = [field('address'), field('commune'), field('region')].filter(Boolean).join(', ');
-    setBusy(true);
-    try {
-      await crearBoleta(user.id, { metodoPago: field('payment'), direccion });
-      setCheckoutOpen(false);
-      window.alert('¡Pedido confirmado con éxito! Puedes revisar el pedido en tu perfil.');
-      navigate('/');
-    } catch (orderError) {
-      window.alert(orderError.message);
-      await cargar();
-    } finally {
-      setBusy(false);
-    }
-  };
-
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { PieSitio } from '../componentes/PieSitio.jsx';
+import { EncabezadoSitio } from '../componentes/EncabezadoSitio.jsx';
+import { formatearPrecio } from '../utilidades/almacenamiento.js';
+import { establecerCantidad, obtenerCarrito, quitarDelCarrito, vaciarCarrito } from '../servicios/tienda.js';
+
+export function Carrito() {
+  const navigate = useNavigate();
+  const [cart, setCart] = useState({ items: [], subtotal: 0, impuestos: 0, total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const { items, subtotal, impuestos: tax, total } = cart;
+
+  const cargar = useCallback(async () => {
+    try {
+      setCart(await obtenerCarrito());
+      setError('');
+    } catch (loadError) {
+      setError(loadError.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  const ejecutar = async accion => {
+    setBusy(true);
+    try {
+      await accion();
+      await cargar();
+    } catch (actionError) {
+      window.alert(actionError.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const changeQuantity = (item, amount) => ejecutar(() => establecerCantidad(item.id, item.cantidad + amount));
+
+  const beginCheckout = () => {
+    if (!items.length) {
+      window.alert('El carrito está vacío.');
+      return;
+    }
+    navigate('/checkout');
+  };
   return (
     <>
       <EncabezadoSitio />
@@ -142,7 +100,6 @@ export function Carrito() {
           </aside>
         </div>
       </main>
-      <ModalDespacho isOpen={checkoutOpen} onCancel={() => setCheckoutOpen(false)} onConfirm={confirmOrder} busy={busy} />
       <PieSitio />
     </>
   );

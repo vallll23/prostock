@@ -1,6 +1,10 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Inicio } from './Inicio.jsx';
 import { Productos } from './Productos.jsx';
+import { Ofertas } from './Ofertas.jsx';
+import { Checkout } from './Checkout.jsx';
+import { CompraExitosa } from './CompraExitosa.jsx';
+import { PagoError } from './PagoError.jsx';
 import { AcercaDeNosotros } from './AcercaDeNosotros.jsx';
 import { Blog } from './Blog.jsx';
 import { DetalleBlog } from './DetalleBlog.jsx';
@@ -22,7 +26,11 @@ function RutasAplicacion() {
     <Routes>
       <Route path="/" element={<Inicio />} />
       <Route path="/productos" element={<Productos />} />
-      <Route path="/nosotros" element={<AcercaDeNosotros />} />
+      <Route path="/ofertas" element={<Ofertas />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/compra-exitosa" element={<CompraExitosa />} />
+        <Route path="/pago-error" element={<PagoError />} />
+        <Route path="/nosotros" element={<AcercaDeNosotros />} />
       <Route path="/blogs" element={<Blog />} />
       <Route path="/detalle-blog" element={<DetalleBlog />} />
       <Route path="/detalle-producto" element={<DetalleProducto />} />

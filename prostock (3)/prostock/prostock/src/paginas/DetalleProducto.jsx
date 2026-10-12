@@ -94,7 +94,7 @@ export function DetalleProducto() {
                 <span className="badge bg-secondary mb-2 align-self-start">{product.categoria}</span>
                 <h1 className="h2">{product.nombre}</h1>
                 <p className="text-muted mb-1">SKU / Código: <strong>{product.codigo}</strong></p>
-                <p className="text-primary fw-bold fs-3 my-3">{formatearPrecio(product.precio)}</p>
+                <p className="text-primary fw-bold fs-3 my-3">{formatearPrecio(product.precioFinal)}{product.descuento > 0 && <><small className="text-muted text-decoration-line-through fw-normal fs-6 ms-2">{formatearPrecio(product.precio)}</small><span className="badge bg-danger fs-6 ms-2">-{product.descuento}%</span></>}</p>
                 {product.descripcion && <p>{product.descripcion}</p>}
                 <p>Stock disponible: <strong>{product.stock} unidades</strong></p>
                 {added && <div className="alert alert-success py-2" role="status">Producto agregado al carrito.</div>}

@@ -30,7 +30,13 @@ export function TarjetaProducto({ product }) {
           </h2>
           <p className="small text-muted mb-2">Código: {product.codigo}</p>
           <p className="fw-bold text-primary fs-5 mt-auto mb-3">
-            ${Number(product.precio).toLocaleString('es-CL')}
+            ${Number(product.precioFinal).toLocaleString('es-CL')}
+            {product.descuento > 0 && (
+              <>
+                <small className="text-muted text-decoration-line-through fw-normal ms-2">${Number(product.precio).toLocaleString('es-CL')}</small>
+                <span className="badge bg-danger ms-2">-{product.descuento}%</span>
+              </>
+            )}
           </p>
           <button type="button" className="btn btn-primary w-100" onClick={addToCart} disabled={product.stock <= 0}>
             {product.stock > 0 ? 'Agregar al carrito' : 'Sin stock'}

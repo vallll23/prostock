@@ -1,4 +1,4 @@
-﻿import { api } from '../utilidades/api.js';
+import { api } from '../utilidades/api.js';
 import { leerAlmacenamiento, guardarAlmacenamiento } from '../utilidades/almacenamiento.js';
 import { guardarUsuario, normalizarCliente, obtenerUsuario } from './sesion.js';
 
@@ -17,6 +17,8 @@ export function normalizarProducto(producto) {
     nombre: producto.nombreModelo ?? producto.nombre ?? '',
     descripcion: producto.descripcion || '',
     precio: Number(producto.precio || 0),
+    descuento: Number(producto.descuento || 0),
+    precioFinal: Number(producto.precioOferta ?? producto.precio ?? 0),
     stock: Number(producto.stock || 0),
     imagen,
     imagenes: imagen ? [imagen] : [],
@@ -27,6 +29,11 @@ export function normalizarProducto(producto) {
 
 export async function listarProductos() {
   const datos = await api('/api/productos');
+  return (Array.isArray(datos) ? datos : []).map(normalizarProducto);
+}
+
+export async function listarOfertas() {
+  const datos = await api('/api/productos/ofertas');
   return (Array.isArray(datos) ? datos : []).map(normalizarProducto);
 }
 
@@ -43,6 +50,7 @@ export async function guardarProducto(datos, id) {
     precio: datos.precio,
     stock: datos.stock,
     linkImagen: datos.imagen,
+    descuento: datos.descuento ?? (id ? (await obtenerProducto(id)).descuento : 0),
     tipoCategoria: categoria
   };
   const guardado = await api(id ? `/api/productos/${id}` : '/api/productos', { method: id ? 'PUT' : 'POST', body: cuerpo });
@@ -158,7 +166,7 @@ async function guardarItemLocal(producto, cantidad) {
   if (cantidad > actual.stock) throw new Error(`Solo hay ${actual.stock} unidades disponibles.`);
   const items = leerCarritoLocal().filter(item => item.id !== actual.id);
   if (cantidad > 0) {
-    items.push({ id: actual.id, nombre: actual.nombre, precio: actual.precio, imagen: actual.imagen, stock: actual.stock, cantidad });
+    items.push({ id: actual.id, nombre: actual.nombre, precio: actual.precioFinal, imagen: actual.imagen, stock: actual.stock, cantidad });
   }
   guardarAlmacenamiento(CLAVE_CARRITO, items);
 }
@@ -228,6 +236,8 @@ export function normalizarBoleta(boleta) {
     id: boleta.id,
     fecha: Number.isNaN(fecha.getTime()) ? String(boleta.fecha ?? '') : fecha.toLocaleDateString('es-CL'),
     estado: boleta.estado || '',
+    direccion: boleta.direccion || '',
+    metodoPago: boleta.metodoPago || '',
     subtotal: Number(boleta.subtotal || 0),
     impuestos: Number(boleta.impuestos ?? boleta.impuesto ?? 0),
     total: Number(boleta.total || 0)
@@ -249,11 +259,11 @@ export async function listarBoletas(clienteId) {
 
 export function normalizarBlog(blog) {
   return {
-    id: blog.id,
-    titulo: blog.nombre ?? blog.titulo ?? '',
-    descripcion: blog.descripcion || '',
-    contenido: blog.contenido || '',
-    imagen: blog.linkImagen ?? blog.imagen ?? blog.imagenUrl ?? ''
+    id: blog.id_posteo ?? blog.id,
+    titulo: blog.nombre_post ?? blog.nombre ?? blog.titulo ?? '',
+    descripcion: blog.descripcion_post ?? blog.descripcion ?? '',
+    contenido: blog.contenido_post ?? blog.contenido ?? '',
+    imagen: blog.link_imagen_post ?? blog.linkImagen ?? blog.imagen ?? blog.imagenUrl ?? ''
   };
 }
 

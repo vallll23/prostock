@@ -6,9 +6,17 @@ describe('Vista de detalle del blog', () => {
   afterEach(limpiarVista);
 
   it('muestra el artículo completo con sus cinco recomendaciones', () => {
+    window.history.pushState({}, '', '/detalle-blog?id=inventario-oficina');
     const vista = renderizarVista(<DetalleBlog />);
     expect(vista.querySelector('h1').textContent).toContain('Organizar el Inventario');
     expect(vista.querySelectorAll('article section h2').length).toBe(5);
     expect(vista.querySelector('article a[href="/blogs"]').textContent).toContain('Volver al blog');
+  });
+
+  it('muestra el segundo artículo con sus cuatro recomendaciones', () => {
+    window.history.pushState({}, '', '/detalle-blog?id=elegir-insumos');
+    const vista = renderizarVista(<DetalleBlog />);
+    expect(vista.querySelector('h1').textContent).toContain('Elegir los Insumos Correctos');
+    expect(vista.querySelectorAll('article section h2').length).toBe(4);
   });
 });

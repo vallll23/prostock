@@ -6,6 +6,7 @@ import { contarCarrito } from '../servicios/tienda.js';
 const navigation = [
   { to: '/', label: 'Inicio', page: 'home' },
   { to: '/productos', label: 'Productos', page: 'products' },
+  { to: '/ofertas', label: 'Ofertas', page: 'offers' },
   { to: '/nosotros', label: 'Nosotros', page: 'about' },
   { to: '/blogs', label: 'Blog', page: 'blog' },
   { to: '/contacto', label: 'Contacto', page: 'contact' }

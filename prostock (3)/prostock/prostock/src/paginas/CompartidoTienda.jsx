@@ -15,7 +15,7 @@ export function DisenoPublico({ activePage, children }) {
 
 export const blogTitle = '5 Tips para Organizar el Inventario de tu Oficina';
 
-export const blogImage = 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=1200&q=80';
+export const blogImage = '/blog/inventario-oficina.jpg';
 
 export async function addProductToCart(product) {
   if (product.stock <= 0) {
