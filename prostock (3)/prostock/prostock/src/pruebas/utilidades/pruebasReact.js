@@ -82,3 +82,40 @@ function UbicacionActual() {
 export function usuarioAdministrador(id = 1) {
   return { id, nombre: 'Administradora de prueba', email: 'admin@duoc.cl', password: 'secreto', rol: 'ADMIN' };
 }
+
+export async function esperar(ms = 20) {
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, ms));
+  });
+}
+
+export function configurarMockApi(manejador) {
+  const originalFetch = window.fetch;
+  window.fetch = jasmine.createSpy('fetch').and.callFake(async (url, opciones = {}) => {
+    const ruta = typeof url === 'string' ? url.replace(/^https?:\/\/[^/]+/, '') : '';
+    const metodo = (opciones.method || 'GET').toUpperCase();
+    const cuerpo = opciones.body ? JSON.parse(opciones.body) : undefined;
+    
+    const respuestaManejador = await manejador(ruta, metodo, cuerpo);
+    if (respuestaManejador !== undefined) {
+      const status = respuestaManejador.status || 200;
+      const ok = status >= 200 && status < 300;
+      return {
+        ok,
+        status,
+        text: async () => JSON.stringify(respuestaManejador.body ?? respuestaManejador),
+        json: async () => respuestaManejador.body ?? respuestaManejador
+      };
+    }
+    return {
+      ok: false,
+      status: 404,
+      text: async () => JSON.stringify({ message: 'No encontrado' }),
+      json: async () => ({ message: 'No encontrado' })
+    };
+  });
+
+  return () => {
+    window.fetch = originalFetch;
+  };
+}

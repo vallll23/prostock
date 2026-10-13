@@ -2,8 +2,14 @@ import { FormularioUsuarioAdministracion } from '../../paginas/FormularioUsuario
 import { limpiarVista, prepararVista, renderizarVista, usuarioAdministrador } from '../utilidades/pruebasReact.js';
 
 describe('Vista de formulario de usuario', () => {
-  beforeEach(() => prepararVista({ usuarioActivo: usuarioAdministrador(), usuarios_db: [usuarioAdministrador()] }));
-  afterEach(limpiarVista);
+  beforeEach(() => {
+    prepararVista({ usuarioActivo: usuarioAdministrador() });
+    window.history.replaceState({}, '', '/admin/usuario');
+  });
+  afterEach(() => {
+    window.history.replaceState({}, '', '/context.html');
+    limpiarVista();
+  });
 
   it('muestra los datos y controles necesarios para crear un usuario', () => {
     const vista = renderizarVista(<FormularioUsuarioAdministracion />, '/admin/usuario');
@@ -11,6 +17,6 @@ describe('Vista de formulario de usuario', () => {
     expect(vista.querySelector('#user-name')).not.toBeNull();
     expect(vista.querySelector('#user-email')).not.toBeNull();
     expect(vista.querySelector('#user-password')).not.toBeNull();
-    expect(vista.querySelector('#user-role')).not.toBeNull();
+    expect(vista.querySelector('#user-confirm')).not.toBeNull();
   });
 });

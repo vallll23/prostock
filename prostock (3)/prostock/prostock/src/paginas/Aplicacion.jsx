@@ -20,6 +20,12 @@ import { FormularioProductoAdministracion } from './FormularioProductoAdministra
 import { UsuariosAdministracion } from './UsuariosAdministracion.jsx';
 import { FormularioUsuarioAdministracion } from './FormularioUsuarioAdministracion.jsx';
 import { MensajesAdministracion } from './MensajesAdministracion.jsx';
+import { OrdenesAdministracion } from './OrdenesAdministracion.jsx';
+import { HistorialComprasUsuario } from './HistorialComprasUsuario.jsx';
+import { ProductosCriticos } from './ProductosCriticos.jsx';
+import { CategoriasAdministracion } from './CategoriasAdministracion.jsx';
+import { PerfilAdministracion } from './PerfilAdministracion.jsx';
+import { ReportesAdministracion } from './ReportesAdministracion.jsx';
 
 function RutasAplicacion() {
   return (
@@ -40,6 +46,12 @@ function RutasAplicacion() {
       <Route path="/registro" element={<Registro />} />
       <Route path="/perfil" element={<Perfil />} />
       <Route path="/admin" element={<PanelAdministracion />} />
+      <Route path="/admin/ordenes" element={<OrdenesAdministracion />} />
+      <Route path="/admin/usuarios/:clienteId/compras" element={<HistorialComprasUsuario />} />
+      <Route path="/admin/stock-critico" element={<ProductosCriticos />} />
+      <Route path="/admin/categorias" element={<CategoriasAdministracion />} />
+      <Route path="/admin/perfil" element={<PerfilAdministracion />} />
+      <Route path="/admin/reportes" element={<ReportesAdministracion />} />
       <Route path="/admin/productos" element={<ProductosAdministracion />} />
       <Route path="/admin/producto" element={<FormularioProductoAdministracion />} />
       <Route path="/admin/usuarios" element={<UsuariosAdministracion />} />

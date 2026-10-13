@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DisenoFormularioAdministracion, DisenoAdministracion, usarAccesoAdministracion, usarInventarioProductos } from './CompartidoAdministracion.jsx';
 import { formatearPrecio, leerAlmacenamiento } from '../utilidades/almacenamiento.js';
-import { listarBoletas, listarClientes } from '../servicios/tienda.js';
+import { listarClientes, listarTodasLasBoletas } from '../servicios/tienda.js';
 
 export function PanelAdministracion() {
   const ready = usarAccesoAdministracion();
@@ -17,7 +17,7 @@ export function PanelAdministracion() {
     let activo = true;
     listarClientes()
       .then(async clientes => {
-        const boletas = await Promise.all(clientes.map(cliente => listarBoletas(cliente.id)));
+        const boletas = await listarTodasLasBoletas(clientes);
         if (!activo) return;
         setUsers(clientes);
         setOrders(boletas.flat());
@@ -32,7 +32,7 @@ export function PanelAdministracion() {
   const stats = [
     { title: 'Productos Totales', value: products.length, color: 'primary', icon: 'bi-box-seam' },
     { title: 'Usuarios Registrados', value: users.length, color: 'success', icon: 'bi-people' },
-    { title: 'Acciones Rápidas', value: <Link to="/admin/producto" className="btn btn-sm btn-dark mt-2">+ Nuevo Producto</Link>, color: 'warning', icon: 'bi-lightning-charge' },
+    { title: 'Acciones Rápidas', value: <div className="d-flex flex-wrap gap-2 mt-2"><Link to="/admin/producto" className="btn btn-sm btn-dark">+ Producto</Link><Link to="/admin/ordenes" className="btn btn-sm btn-dark">Órdenes</Link><Link to="/admin/reportes" className="btn btn-sm btn-dark">Reportes</Link></div>, color: 'warning', icon: 'bi-lightning-charge' },
     { title: 'Pedidos', value: orders.length, color: 'info', icon: 'bi-bag-check' },
     { title: 'Mensajes pendientes', value: messages.filter(message => !message.atendido).length, color: 'secondary', icon: 'bi-envelope' },
     { title: 'Ventas totales', value: formatearPrecio(orders.reduce((sum, order) => sum + Number(order.total || 0), 0)), color: 'dark', icon: 'bi-cash-stack' }

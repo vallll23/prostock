@@ -1,34 +1,43 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { DisenoFormularioAdministracion, DisenoAdministracion, categories, usarAccesoAdministracion } from './CompartidoAdministracion.jsx';
-import { guardarProducto, obtenerProducto } from '../servicios/tienda.js';
+import { DisenoFormularioAdministracion, usarAccesoAdministracion } from './CompartidoAdministracion.jsx';
+import { guardarProducto, listarCategorias, obtenerProducto } from '../servicios/tienda.js';
 
 export function FormularioProductoAdministracion() {
   const navigate = useNavigate();
   const ready = usarAccesoAdministracion();
   const productId = new URLSearchParams(window.location.search).get('id');
   const [form, setForm] = useState(null);
+  const [categoriesList, setCategoriesList] = useState([]);
   const [alert, setAlert] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!ready) return undefined;
+    let activo = true;
+
+    listarCategorias()
+      .then(cats => activo && setCategoriesList(cats))
+      .catch(() => {});
+
     if (!productId) {
-      setForm({ nombre: '', descripcion: '', categoria: '', precio: '', stock: '', imagen: '' });
+      setForm({ nombre: '', descripcion: '', categoriaId: '', precio: '', stock: '', imagen: '' });
       return undefined;
     }
-    let activo = true;
+
     obtenerProducto(productId)
       .then(existing => activo && setForm({
         nombre: existing.nombre,
         descripcion: existing.descripcion,
-        categoria: existing.categoria,
+        categoriaId: existing.categoriaApi?.id ? String(existing.categoriaApi.id) : '',
+        categoriaNombre: existing.categoria || '',
         precio: String(existing.precio ?? ''),
         stock: String(existing.stock ?? ''),
         imagen: existing.imagen
       }))
       .catch(loadError => activo && setError(loadError.message));
+
     return () => {
       activo = false;
     };
@@ -44,9 +53,14 @@ export function FormularioProductoAdministracion() {
     const price = Number(form.precio);
     const stock = Number(form.stock);
     const image = form.imagen.trim();
+    const catId = Number(form.categoriaId);
 
     if (!name || !Number.isInteger(price) || price <= 0 || !Number.isInteger(stock) || stock < 0) {
       setAlert('Ingresa un nombre, un precio entero mayor a cero y un stock válido.');
+      return;
+    }
+    if (!catId) {
+      setAlert('Debes seleccionar una categoría válida existente.');
       return;
     }
     if (!image) {
@@ -55,7 +69,14 @@ export function FormularioProductoAdministracion() {
     }
     setSaving(true);
     try {
-      await guardarProducto({ nombre: name, descripcion: form.descripcion.trim(), categoria: form.categoria, precio: price, stock, imagen: image }, productId);
+      await guardarProducto({
+        nombre: name,
+        descripcion: form.descripcion.trim(),
+        tipoCategoria: { id: catId },
+        precio: price,
+        stock,
+        imagen: image
+      }, productId);
       navigate('/admin/productos');
     } catch (saveError) {
       setAlert(saveError.message);
@@ -71,7 +92,15 @@ export function FormularioProductoAdministracion() {
           {(error || alert) && <div className="alert alert-danger" role="alert">{alert || error}</div>}
           <form onSubmit={submit}>
             <div className="mb-3"><label className="form-label" htmlFor="product-name">Nombre del Producto</label><input id="product-name" name="nombre" className="form-control" required placeholder="Ej: Resma Papel A4" value={form.nombre} onChange={updateField} /></div>
-            <div className="mb-3"><label className="form-label" htmlFor="product-category">Categoría</label><select id="product-category" name="categoria" className="form-select" required value={form.categoria} onChange={updateField}><option value="">Seleccione...</option>{categories.map(category => <option key={category}>{category}</option>)}</select></div>
+            <div className="mb-3">
+              <label className="form-label" htmlFor="product-category">Categoría</label>
+              <select id="product-category" name="categoriaId" className="form-select" required value={form.categoriaId} onChange={updateField}>
+                <option value="">Seleccione...</option>
+                {categoriesList.map(category => (
+                  <option key={category.id} value={category.id}>{category.nombre}</option>
+                ))}
+              </select>
+            </div>
             <div className="row">
               <div className="col-md-6 mb-3"><label className="form-label" htmlFor="product-price">Precio ($)</label><input id="product-price" name="precio" type="number" min="1" className="form-control" required value={form.precio} onChange={updateField} /></div>
               <div className="col-md-6 mb-3"><label className="form-label" htmlFor="product-stock">Stock</label><input id="product-stock" name="stock" type="number" min="0" className="form-control" required value={form.stock} onChange={updateField} /></div>

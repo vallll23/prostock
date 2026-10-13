@@ -42,8 +42,19 @@ export async function obtenerProducto(id) {
 }
 
 export async function guardarProducto(datos, id) {
-  const productos = await listarProductos();
-  const categoria = productos.find(item => item.categoria === datos.categoria)?.categoriaApi || { nombre: datos.categoria };
+  let categoriaObj = null;
+  if (datos.tipoCategoria && typeof datos.tipoCategoria === 'object' && datos.tipoCategoria.id) {
+    categoriaObj = { id: Number(datos.tipoCategoria.id) };
+  } else if (datos.categoriaId) {
+    categoriaObj = { id: Number(datos.categoriaId) };
+  } else if (datos.categoria) {
+    const categorias = await listarCategorias().catch(() => []);
+    const encontrada = categorias.find(c => c.nombre.toLowerCase() === String(datos.categoria).toLowerCase());
+    if (encontrada) {
+      categoriaObj = { id: encontrada.id };
+    }
+  }
+
   const cuerpo = {
     nombreModelo: datos.nombre,
     descripcion: datos.descripcion,
@@ -51,7 +62,7 @@ export async function guardarProducto(datos, id) {
     stock: datos.stock,
     linkImagen: datos.imagen,
     descuento: datos.descuento ?? (id ? (await obtenerProducto(id)).descuento : 0),
-    tipoCategoria: categoria
+    tipoCategoria: categoriaObj
   };
   const guardado = await api(id ? `/api/productos/${id}` : '/api/productos', { method: id ? 'PUT' : 'POST', body: cuerpo });
   return normalizarProducto(guardado);
@@ -59,6 +70,41 @@ export async function guardarProducto(datos, id) {
 
 export function eliminarProducto(id) {
   return api(`/api/productos/${id}`, { method: 'DELETE' });
+}
+
+// ---------- Categorías ----------
+
+export function normalizarCategoria(categoria) {
+  return {
+    id: categoria.id,
+    nombre: categoria.nombre || '',
+    descripcion: categoria.descripcion || ''
+  };
+}
+
+export async function listarCategorias() {
+  const datos = await api('/api/categorias');
+  return (Array.isArray(datos) ? datos : []).map(normalizarCategoria);
+}
+
+export async function obtenerCategoria(id) {
+  return normalizarCategoria(await api(`/api/categorias/${id}`));
+}
+
+export async function guardarCategoria(datos, id) {
+  const cuerpo = {
+    nombre: datos.nombre,
+    descripcion: datos.descripcion || ''
+  };
+  const guardado = await api(id ? `/api/categorias/${id}` : '/api/categorias', {
+    method: id ? 'PUT' : 'POST',
+    body: cuerpo
+  });
+  return normalizarCategoria(guardado);
+}
+
+export function eliminarCategoria(id) {
+  return api(`/api/categorias/${id}`, { method: 'DELETE' });
 }
 
 // ---------- Clientes ----------
@@ -234,13 +280,24 @@ export function normalizarBoleta(boleta) {
   const fecha = new Date(boleta.fecha);
   return {
     id: boleta.id,
+    clienteId: boleta.cliente?.id ?? boleta.clienteId,
+    clienteNombre: boleta.cliente?.nombreCompleto ?? boleta.clienteNombre ?? '',
+    clienteEmail: boleta.cliente?.email ?? boleta.clienteEmail ?? '',
     fecha: Number.isNaN(fecha.getTime()) ? String(boleta.fecha ?? '') : fecha.toLocaleDateString('es-CL'),
+    fechaOriginal: String(boleta.fecha ?? ''),
     estado: boleta.estado || '',
     direccion: boleta.direccion || '',
     metodoPago: boleta.metodoPago || '',
     subtotal: Number(boleta.subtotal || 0),
     impuestos: Number(boleta.impuestos ?? boleta.impuesto ?? 0),
-    total: Number(boleta.total || 0)
+    total: Number(boleta.total || 0),
+    items: Array.isArray(boleta.items) ? boleta.items.map(item => ({
+      id: item.id ?? item.productoId,
+      nombre: item.nombreProducto ?? item.nombre ?? '',
+      cantidad: Number(item.cantidad || 0),
+      precio: Number(item.precioUnitario ?? item.precio ?? 0),
+      subtotal: Number(item.subtotal ?? (item.precioUnitario ?? item.precio ?? 0) * (item.cantidad || 0))
+    })) : []
   };
 }
 
@@ -253,6 +310,19 @@ export async function crearBoleta(clienteId, { metodoPago, direccion }) {
 export async function listarBoletas(clienteId) {
   const datos = await api(`/api/clientes/${clienteId}/boletas`);
   return (Array.isArray(datos) ? datos : []).map(normalizarBoleta);
+}
+
+export async function listarTodasLasBoletas(clientes) {
+  const resultados = await Promise.all(clientes.map(async cliente => {
+    const boletas = await listarBoletas(cliente.id);
+    return boletas.map(boleta => ({
+      ...boleta,
+      clienteId: cliente.id,
+      clienteNombre: cliente.nombre,
+      clienteEmail: cliente.email
+    }));
+  }));
+  return resultados.flat().sort((a, b) => b.id - a.id);
 }
 
 // ---------- Blogs ----------

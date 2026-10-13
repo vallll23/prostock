@@ -5,9 +5,14 @@ import { eliminarProducto, listarProductos } from '../servicios/tienda.js';
 
 export const menu = [
   { to: '/admin', label: 'Dashboard', page: 'dashboard' },
+  { to: '/admin/ordenes', label: 'Órdenes / Boletas', page: 'orders' },
+  { to: '/admin/stock-critico', label: 'Productos críticos', page: 'critical' },
+  { to: '/admin/categorias', label: 'Categorías', page: 'categories' },
   { to: '/admin/productos', label: 'Productos', page: 'products' },
   { to: '/admin/usuarios', label: 'Usuarios', page: 'users' },
-  { to: '/admin/mensajes', label: 'Mensajes', page: 'messages' }
+  { to: '/admin/mensajes', label: 'Mensajes', page: 'messages' },
+  { to: '/admin/reportes', label: 'Reportes', page: 'reports' },
+  { to: '/admin/perfil', label: 'Mi perfil', page: 'profile' }
 ];
 
 export const categories = ['Papelería y Oficina', 'Escolar', 'Aseo y Limpieza', 'Insumos'];
