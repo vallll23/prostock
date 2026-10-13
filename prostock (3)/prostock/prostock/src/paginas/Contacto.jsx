@@ -1,26 +1,40 @@
 import { useState } from 'react';
 import { DisenoPublico } from './CompartidoTienda.jsx';
-import { leerAlmacenamiento, guardarAlmacenamiento } from '../utilidades/almacenamiento.js';
+import { obtenerUsuario } from '../servicios/sesion.js';
+import { enviarMensajeContacto } from '../servicios/tienda.js';
 
 export function Contacto() {
+  const usuario = obtenerUsuario();
+  const [nombre, setNombre] = useState(usuario?.nombre || '');
+  const [email, setEmail] = useState(usuario?.email || '');
+  const [asunto, setAsunto] = useState('');
+  const [mensaje, setMensaje] = useState('');
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const submit = event => {
+  const submit = async event => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const messages = leerAlmacenamiento('mensajes_contacto_db');
-    messages.push({
-      id: Date.now(),
-      nombre: String(form.get('name')).trim(),
-      email: String(form.get('email')).trim().toLowerCase(),
-      asunto: String(form.get('subject')).trim(),
-      mensaje: String(form.get('message')).trim(),
-      fecha: new Date().toLocaleDateString('es-CL'),
-      atendido: false
-    });
-    guardarAlmacenamiento('mensajes_contacto_db', messages);
-    event.currentTarget.reset();
-    setSent(true);
+    const datos = {
+      nombre: nombre.trim(),
+      email: email.trim().toLowerCase(),
+      asunto: asunto.trim(),
+      mensaje: mensaje.trim()
+    };
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await enviarMensajeContacto(datos);
+      setAsunto('');
+      setMensaje('');
+      setSent(true);
+    } catch (err) {
+      setError(err.message || 'Error al enviar el mensaje. Inténtalo nuevamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,12 +44,59 @@ export function Contacto() {
         <div className="col-md-7">
           <div className="card shadow-sm border-0 p-4">
             {sent && <div className="alert alert-success alert-dismissible" role="status">Gracias por contactarnos. Tu mensaje fue enviado correctamente.<button type="button" className="btn-close" aria-label="Cerrar" onClick={() => setSent(false)} /></div>}
+            {error && <div className="alert alert-danger" role="alert">{error}</div>}
             <form onSubmit={submit}>
-              <div className="mb-3"><label className="form-label" htmlFor="contact-name">Nombre Completo</label><input id="contact-name" name="name" className="form-control" required placeholder="Ej: Ana López" /></div>
-              <div className="mb-3"><label className="form-label" htmlFor="contact-email">Correo Electrónico</label><input id="contact-email" name="email" className="form-control" type="email" required placeholder="correo@ejemplo.com" /></div>
-              <div className="mb-3"><label className="form-label" htmlFor="contact-subject">Asunto</label><input id="contact-subject" name="subject" className="form-control" required placeholder="Consulta sobre cotización / stock" /></div>
-              <div className="mb-3"><label className="form-label" htmlFor="contact-message">Mensaje</label><textarea id="contact-message" name="message" className="form-control" rows="4" required placeholder="Escribe tu mensaje aquí..." /></div>
-              <button type="submit" className="btn btn-primary w-100 fw-bold">Enviar Mensaje</button>
+              <div className="mb-3">
+                <label className="form-label" htmlFor="contact-name">Nombre Completo</label>
+                <input
+                  id="contact-name"
+                  name="name"
+                  className="form-control"
+                  required
+                  placeholder="Ej: Ana López"
+                  value={nombre}
+                  onChange={e => setNombre(e.target.value)}
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label" htmlFor="contact-email">Correo Electrónico</label>
+                <input
+                  id="contact-email"
+                  name="email"
+                  className="form-control"
+                  type="email"
+                  required
+                  placeholder="correo@ejemplo.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label" htmlFor="contact-subject">Asunto</label>
+                <input
+                  id="contact-subject"
+                  name="subject"
+                  className="form-control"
+                  required
+                  placeholder="Consulta sobre cotización / stock"
+                  value={asunto}
+                  onChange={e => setAsunto(e.target.value)}
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label" htmlFor="contact-message">Mensaje</label>
+                <textarea
+                  id="contact-message"
+                  name="message"
+                  className="form-control"
+                  rows="4"
+                  required
+                  placeholder="Escribe tu mensaje aquí..."
+                  value={mensaje}
+                  onChange={e => setMensaje(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="btn btn-primary w-100 fw-bold" disabled={loading}>{loading ? 'Enviando mensaje...' : 'Enviar Mensaje'}</button>
             </form>
           </div>
         </div>

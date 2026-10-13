@@ -312,7 +312,16 @@ export async function listarBoletas(clienteId) {
   return (Array.isArray(datos) ? datos : []).map(normalizarBoleta);
 }
 
-export async function listarTodasLasBoletas(clientes) {
+export async function listarTodasLasBoletas(clientes = []) {
+  try {
+    const directas = await api('/api/boletas');
+    if (Array.isArray(directas) && directas.length >= 0) {
+      return directas.map(normalizarBoleta);
+    }
+  } catch {
+    // Si el backend no expone /api/boletas directamente, consultamos por cada cliente
+  }
+
   const resultados = await Promise.all(clientes.map(async cliente => {
     const boletas = await listarBoletas(cliente.id);
     return boletas.map(boleta => ({
@@ -344,4 +353,45 @@ export async function listarBlogs() {
 
 export async function obtenerBlog(id) {
   return normalizarBlog(await api(`/api/blogs/${id}`));
+}
+
+// ---------- Mensajes de contacto ----------
+
+export function normalizarMensaje(msg) {
+  const fecha = new Date(msg.fecha);
+  return {
+    id: msg.id,
+    nombre: msg.nombre || '',
+    email: msg.email || '',
+    asunto: msg.asunto || '',
+    mensaje: msg.mensaje || '',
+    fecha: Number.isNaN(fecha.getTime()) ? String(msg.fecha || '') : fecha.toLocaleDateString('es-CL'),
+    fechaOriginal: msg.fecha || '',
+    atendido: Boolean(msg.atendido)
+  };
+}
+
+export async function listarMensajesContacto() {
+  const datos = await api('/api/mensajes');
+  return (Array.isArray(datos) ? datos : []).map(normalizarMensaje);
+}
+
+export async function enviarMensajeContacto(datos) {
+  return await api('/api/mensajes', {
+    method: 'POST',
+    body: {
+      nombre: datos.nombre,
+      email: datos.email,
+      asunto: datos.asunto,
+      mensaje: datos.mensaje
+    }
+  });
+}
+
+export async function alternarEstadoMensajeContacto(id) {
+  return await api(`/api/mensajes/${id}/atender`, { method: 'PUT' });
+}
+
+export async function eliminarMensajeContacto(id) {
+  return await api(`/api/mensajes/${id}`, { method: 'DELETE' });
 }

@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DisenoFormularioAdministracion, DisenoAdministracion, usarAccesoAdministracion, usarInventarioProductos } from './CompartidoAdministracion.jsx';
-import { formatearPrecio, leerAlmacenamiento } from '../utilidades/almacenamiento.js';
-import { listarClientes, listarTodasLasBoletas } from '../servicios/tienda.js';
+import { formatearPrecio } from '../utilidades/almacenamiento.js';
+import { listarClientes, listarMensajesContacto, listarTodasLasBoletas } from '../servicios/tienda.js';
 
 export function PanelAdministracion() {
   const ready = usarAccesoAdministracion();
   const { products, error } = usarInventarioProductos();
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [panelError, setPanelError] = useState('');
-  const messages = leerAlmacenamiento('mensajes_contacto_db');
 
   useEffect(() => {
     if (!ready) return undefined;
     let activo = true;
+
+    listarMensajesContacto()
+      .then(msgs => activo && setMessages(msgs))
+      .catch(() => {});
+
     listarClientes()
       .then(async clientes => {
         const boletas = await listarTodasLasBoletas(clientes);
@@ -23,6 +28,7 @@ export function PanelAdministracion() {
         setOrders(boletas.flat());
       })
       .catch(loadError => activo && setPanelError(loadError.message));
+
     return () => {
       activo = false;
     };
