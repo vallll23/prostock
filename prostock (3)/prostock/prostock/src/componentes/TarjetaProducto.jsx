@@ -15,7 +15,7 @@ export function TarjetaProducto({ product }) {
       <div className="card product-card h-100 shadow-sm border-0">
         <Link to={`/detalle-producto?id=${product.id}`} className="text-decoration-none">
           <img
-            src={product.imagen}
+            src={product.imagen || undefined}
             className="card-img-top product-card-image"
             alt={product.nombre}
             loading="lazy"

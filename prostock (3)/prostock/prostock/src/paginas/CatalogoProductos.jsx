@@ -44,7 +44,7 @@ export function ProductosDestacados({ products }) {
           {sponsored.map(product => (
             <article className="sponsored-card" key={product.id}>
               <Link to={`/detalle-producto?id=${product.id}`} className="sponsored-image-link">
-                <img src={product.imagen} alt={product.nombre} loading="lazy" />
+                <img src={product.imagen || undefined} alt={product.nombre} loading="lazy" />
               </Link>
               <div className="sponsored-card-body">
                 <span className="sponsored-category">{product.categoria}</span>

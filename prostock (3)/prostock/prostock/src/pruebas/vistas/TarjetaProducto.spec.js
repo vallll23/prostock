@@ -48,4 +48,20 @@ describe('Componente TarjetaProducto (Pruebas de Props, Renderizado y Eventos)',
     expect(boton.textContent).toContain('Sin stock');
     expect(vista.querySelector('.badge.bg-danger')).toBeNull();
   });
+
+  it('no asigna una ruta vacía cuando el producto no tiene imagen', () => {
+    const productoSinImagen = {
+      id: 101,
+      codigo: 'PRO-101',
+      nombre: 'Producto sin imagen',
+      categoria: 'Escolar',
+      precio: 1000,
+      precioFinal: 1000,
+      stock: 1,
+      imagen: ''
+    };
+
+    const vista = renderizarVista(<TarjetaProducto product={productoSinImagen} />);
+    expect(vista.querySelector('.product-card-image').getAttribute('src')).toBeNull();
+  });
 });

@@ -31,7 +31,7 @@ export function DetalleProducto() {
   }, [productId]);
 
   const images = useMemo(
-    () => product?.imagenes?.length ? product.imagenes : product?.imagen ? [product.imagen] : [],
+    () => (product?.imagenes?.length ? product.imagenes : product?.imagen ? [product.imagen] : []).filter(Boolean),
     [product]
   );
 
@@ -88,7 +88,13 @@ export function DetalleProducto() {
                       <span className="carousel-control-next-icon" /><span className="visually-hidden">Siguiente</span>
                     </button>
                   </div>
-                ) : <img src={images[0]} className="img-fluid product-detail-image" alt={product.nombre} />}
+                ) : images.length ? (
+                  <img src={images[0]} className="img-fluid product-detail-image" alt={product.nombre} />
+                ) : (
+                  <div className="product-detail-image d-flex align-items-center justify-content-center text-muted" role="img" aria-label="Imagen no disponible">
+                    Imagen no disponible
+                  </div>
+                )}
               </div>
               <div className="col-md-6 d-flex flex-column justify-content-center">
                 <span className="badge bg-secondary mb-2 align-self-start">{product.categoria}</span>

@@ -63,7 +63,7 @@ export function Carrito() {
                 <tbody>
                   {items.length ? items.map(item => (
                     <tr key={item.id}>
-                      <td><img src={item.imagen} width="50" height="50" className="rounded object-fit-cover me-2" alt="" /><span className="fw-bold">{item.nombre}</span></td>
+                      <td><img src={item.imagen || undefined} width="50" height="50" className="rounded object-fit-cover me-2" alt="" /><span className="fw-bold">{item.nombre}</span></td>
                       <td>{formatearPrecio(item.precio)}</td>
                       <td>
                         <div className="input-group input-group-sm" style={{ width: 110 }}>
